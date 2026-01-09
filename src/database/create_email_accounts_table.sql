@@ -1,0 +1,11 @@
+-- 创建邮箱管理表
+-- 用于保存邮箱地址和邮箱授权码
+
+CREATE TABLE IF NOT EXISTS `email_accounts` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+  `email` VARCHAR(255) NOT NULL UNIQUE COMMENT '邮箱地址',
+  `auth_code` VARCHAR(255) NOT NULL COMMENT '邮箱授权码',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  INDEX `idx_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='邮箱管理表';

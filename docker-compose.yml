@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: amz_saas_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 'amzdb123a123@'
+      MYSQL_DATABASE: amz_saas_db
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./src/database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - amz_network
+
+  app:
+    build: .
+    container_name: amz_saas_app
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: 'amzdb123a123@'
+      DB_NAME: amz_saas_db
+      JWT_SECRET: jPddgoXbniiIQQ2LvZhLgk20GSUCWtthwJkq6EZbUvJkucqTlVHoqI4orK0eXtw4
+      JWT_EXPIRES_IN: 24h
+      EMAIL_HOST: ${EMAIL_HOST:-smtp.gmail.com}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASSWORD: ${EMAIL_PASSWORD}
+      EMAIL_FROM: ${EMAIL_FROM}
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - amz_network
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./logs:/app/logs
+
+volumes:
+  mysql_data:
+
+networks:
+  amz_network:
+    driver: bridge
