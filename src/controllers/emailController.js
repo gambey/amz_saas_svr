@@ -18,6 +18,11 @@ function createTransporter(email, authCode) {
       port: 587,
       secure: false
     },
+    'velolink.tech': {
+      host: 'smtp.qq.com',
+      port: 587,
+      secure: false
+    },
     '163.com': {
       host: 'smtp.163.com',
       port: 465,
