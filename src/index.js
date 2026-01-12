@@ -15,8 +15,56 @@ const emailAccountRoutes = require('./routes/emailAccountRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 中间件
-app.use(cors());
+// CORS 配置
+const corsOptions = {
+  origin: function (origin, callback) {
+    try {
+      // 允许的域名列表（从环境变量读取，支持多个域名用逗号分隔）
+      const allowedOrigins = process.env.ALLOWED_ORIGINS 
+        ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+        : ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:5173', 'http://localhost:5174'];
+      
+      // 允许无 origin 的请求（如 Postman、移动应用等）
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      // 检查 origin 是否在允许列表中
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        callback(null, true);
+      } else {
+        // 开发环境允许所有来源，生产环境拒绝
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`⚠️  CORS: Origin ${origin} not in allowed list, but allowing in development mode`);
+          callback(null, true);
+        } else {
+          console.warn(`⚠️  CORS: Origin ${origin} not allowed`);
+          callback(new Error('Not allowed by CORS'));
+        }
+      }
+    } catch (error) {
+      // 如果配置解析出错，开发环境允许，生产环境拒绝
+      console.error('CORS configuration error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        callback(error);
+      }
+    }
+  },
+  credentials: true, // 允许携带凭证（如 cookies）
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 预检请求缓存时间（24小时）
+};
+
+// 中间件 - CORS 必须在最前面
+app.use(cors(corsOptions));
+
+// 显式处理 OPTIONS 预检请求（确保所有路由都能响应）
+app.options('*', cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -50,6 +98,15 @@ app.use((req, res) => {
 
 // 错误处理中间件
 app.use((err, req, res, next) => {
+  // 如果是 CORS 错误，返回适当的 CORS 错误响应
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      message: 'CORS: 请求来源不被允许',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+  
   console.error('Error:', err);
   res.status(500).json({
     success: false,

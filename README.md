@@ -21,7 +21,48 @@ Amazon SaaS 服务端项目，提供客户管理和邮件发送功能。
 - Mailparser 邮件解析
 - Swagger API 文档
 
-## 快速开始
+## 部署到服务器
+
+📖 **详细部署文档**: 请查看 [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### 快速部署
+
+**方式一：使用部署脚本（推荐）**
+
+```bash
+# 在本地项目目录执行
+./deploy.sh user@your-server-ip /opt/amz-saas
+```
+
+**方式二：手动部署**
+
+1. 在服务器上运行初始化脚本：
+```bash
+# 在服务器上执行
+./server-init.sh
+```
+
+2. 从本地传输文件到服务器：
+```bash
+# 使用 rsync
+rsync -avz --exclude 'node_modules' --exclude '.git' \
+  /path/to/amz_saas_svr/ user@server:/opt/amz-saas/
+```
+
+3. 在服务器上配置和启动：
+```bash
+cd /opt/amz-saas
+cp env.example .env
+nano .env  # 编辑环境变量
+docker-compose build
+docker-compose up -d
+```
+
+更多详细信息请参考 [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+---
+
+## 快速开始（本地开发）
 
 ### 1. 环境准备
 
