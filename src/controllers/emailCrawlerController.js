@@ -25,6 +25,15 @@ function getImapConfig(email) {
       // QQ 邮箱特殊配置
       keepalive: true
     },
+    'velolink.tech': {
+      host: 'imap.qq.com',
+      port: 993,
+      tls: true,
+      connTimeout: 30000,
+      authTimeout: 30000,
+      // QQ 邮箱特殊配置
+      keepalive: true
+    },
     '163.com': {
       host: 'imap.163.com',
       port: 993,

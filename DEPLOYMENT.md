@@ -127,6 +127,7 @@ tar -czf amz-saas-deploy.tar.gz \
   --exclude='.env' \
   --exclude='logs/*' \
   --exclude='*.log' \
+  --exclude='*.md' \
   \
   src/ \
   package.json \
@@ -236,7 +237,7 @@ sudo firewall-cmd --reload
 ```bash
 cd /opt/amz-saas
 
-# 构建镜像（首次部署或更新代码后）
+# 构建镜像（首次部署或更新代码后 Important~~!）
 docker-compose build
 
 # 启动服务
