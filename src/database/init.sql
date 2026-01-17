@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `username` VARCHAR(50) NOT NULL UNIQUE COMMENT '账号名',
   `password` VARCHAR(255) NOT NULL COMMENT '密码（加密）',
+  `is_super_admin` TINYINT(1) DEFAULT 0 COMMENT '是否是超级管理员（0=否，1=是）',
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   INDEX `idx_username` (`username`)
