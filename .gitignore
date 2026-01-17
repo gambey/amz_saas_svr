@@ -6,3 +6,7 @@ dist/
 build/
 coverage/
 .nyc_output/
+# RSA 密钥文件（私钥必须保密）
+keys/private.pem
+# 公钥可以提交，但为了安全建议也忽略
+# keys/public.pem

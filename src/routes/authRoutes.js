@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
-const { login, createAdmin, updatePassword, getAdmins, deleteAdmin } = require('../controllers/authController');
+const { loginRateLimiter } = require('../middleware/rateLimiter');
+const rsaDecryptMiddleware = require('../middleware/rsaDecrypt');
+const { login, createAdmin, updatePassword, getAdmins, deleteAdmin, getPublicKey } = require('../controllers/authController');
 
 /**
  * @swagger
@@ -129,7 +131,49 @@ const { login, createAdmin, updatePassword, getAdmins, deleteAdmin } = require('
  *                   type: string
  *                   example: 登录失败，服务器错误
  */
-router.post('/login', login);
+/**
+ * @swagger
+ * /api/auth/public-key:
+ *   get:
+ *     summary: 获取 RSA 公钥
+ *     description: 获取用于前端加密密码的 RSA 公钥。前端使用此公钥加密密码后再发送到服务器。
+ *     tags: [认证]
+ *     responses:
+ *       200:
+ *         description: 获取公钥成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: 获取公钥成功
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     publicKey:
+ *                       type: string
+ *                       description: RSA 公钥（PEM 格式）
+ *                       example: "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA..."
+ *                     algorithm:
+ *                       type: string
+ *                       description: 加密算法
+ *                       example: RSA-OAEP
+ *                     keySize:
+ *                       type: integer
+ *                       description: 密钥长度（位）
+ *                       example: 2048
+ *       500:
+ *         description: 服务器错误
+ */
+router.get('/public-key', getPublicKey);
+
+// 登录接口：应用频率限制和 RSA 解密中间件
+router.post('/login', loginRateLimiter(), rsaDecryptMiddleware, login);
 
 /**
  * @swagger
@@ -191,7 +235,7 @@ router.post('/login', login);
  *       500:
  *         description: 服务器错误
  */
-router.post('/admin', authenticate, createAdmin);
+router.post('/admin', authenticate, rsaDecryptMiddleware, createAdmin);
 
 /**
  * @swagger
@@ -252,7 +296,7 @@ router.post('/admin', authenticate, createAdmin);
  *       500:
  *         description: 服务器错误
  */
-router.put('/password', authenticate, updatePassword);
+router.put('/password', authenticate, rsaDecryptMiddleware, updatePassword);
 
 /**
  * @swagger

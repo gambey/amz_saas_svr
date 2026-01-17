@@ -1,6 +1,9 @@
 const { pool } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { recordLoginFailure, clearLoginAttempts } = require('../middleware/rateLimiter');
+const { validatePassword } = require('../utils/passwordValidator');
+const { getPublicKey } = require('../utils/rsaCrypto');
 require('dotenv').config();
 
 // 登录
@@ -33,11 +36,16 @@ async function login(req, res) {
     // 验证密码
     const isPasswordValid = await bcrypt.compare(password, admin.password);
     if (!isPasswordValid) {
+      // 记录登录失败
+      recordLoginFailure(req);
       return res.status(401).json({
         success: false,
         message: '用户名或密码错误'
       });
     }
+
+    // 登录成功，清除失败记录
+    clearLoginAttempts(req);
 
     // 生成 JWT token（包含 is_super_admin 信息）
     const token = jwt.sign(
@@ -91,11 +99,12 @@ async function createAdmin(req, res) {
       });
     }
 
-    // 验证密码格式（至少6个字符）
-    if (password.length < 6) {
+    // 验证密码强度
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
       return res.status(400).json({
         success: false,
-        message: '密码至少需要6个字符'
+        message: passwordValidation.message
       });
     }
 
@@ -365,10 +374,35 @@ async function deleteAdmin(req, res) {
   }
 }
 
+// 获取 RSA 公钥
+async function getPublicKeyController(req, res) {
+  try {
+    const publicKey = getPublicKey();
+    
+    res.json({
+      success: true,
+      message: '获取公钥成功',
+      data: {
+        publicKey: publicKey,
+        algorithm: 'RSA-OAEP',
+        keySize: 2048,
+        hash: 'SHA-256'
+      }
+    });
+  } catch (error) {
+    console.error('Get public key error:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取公钥失败: ' + error.message
+    });
+  }
+}
+
 module.exports = {
   login,
   createAdmin,
   updatePassword,
   getAdmins,
-  deleteAdmin
+  deleteAdmin,
+  getPublicKey: getPublicKeyController
 };
