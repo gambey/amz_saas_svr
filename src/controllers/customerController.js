@@ -305,7 +305,7 @@ async function updateCustomer(req, res) {
     }
 
     // 如果更新邮箱，检查新邮箱是否已被其他客户使用
-    if (email !== undefined && email !== null) {
+    /*if (email !== undefined && email !== null) {
       const [emailCheck] = await pool.execute(
         'SELECT id FROM customers WHERE email = ? AND id != ?',
         [email, id]
@@ -316,7 +316,7 @@ async function updateCustomer(req, res) {
           message: '该邮箱已被其他客户使用'
         });
       }
-    }
+    }*/
 
     // 处理日期格式：将 ISO 格式转换为 YYYY-MM-DD
     let formattedAddDate = null;

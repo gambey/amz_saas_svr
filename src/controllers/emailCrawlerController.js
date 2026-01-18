@@ -210,7 +210,9 @@ function fetchEmails(email, authCode, startDate, endDate, keyword) {
           const [year, month, day] = startDate.split('-').map(Number);
           const startDateObj = new Date(year, month - 1, day);
           startDateObj.setHours(0, 0, 0, 0);
+          // IMAP SINCE 包含指定日期，所以直接使用
           baseCriteria.push(['SINCE', startDateObj]);
+          console.log(`日期搜索: SINCE ${startDateObj.toISOString().split('T')[0]}`);
         } catch (dateErr) {
           if (timeoutId) clearTimeout(timeoutId);
           errorOccurred = true;
@@ -222,9 +224,13 @@ function fetchEmails(email, authCode, startDate, endDate, keyword) {
       if (endDate) {
         try {
           const [year, month, day] = endDate.split('-').map(Number);
+          // IMAP BEFORE 是"早于"，不包括指定日期
+          // 要包含截止日期当天的邮件，需要将日期加一天
           const endDateObj = new Date(year, month - 1, day);
-          endDateObj.setHours(23, 59, 59, 999);
+          endDateObj.setDate(endDateObj.getDate() + 1); // 加一天，这样 BEFORE 会包含原日期
+          endDateObj.setHours(0, 0, 0, 0);
           baseCriteria.push(['BEFORE', endDateObj]);
+          console.log(`日期搜索: BEFORE ${endDateObj.toISOString().split('T')[0]} (实际包含 ${endDate} 当天的邮件)`);
         } catch (dateErr) {
           if (timeoutId) clearTimeout(timeoutId);
           errorOccurred = true;
@@ -280,6 +286,7 @@ function fetchEmails(email, authCode, startDate, endDate, keyword) {
           }
 
           // 搜索日期范围内的所有邮件
+          console.log(`文件夹 "${folderName}" 开始搜索，搜索条件:`, JSON.stringify(dateOnlyCriteria));
           imap.search(dateOnlyCriteria, (err, allDateResults) => {
             if (err) {
               console.error(`文件夹 "${folderName}" 搜索错误:`, err);
@@ -291,6 +298,13 @@ function fetchEmails(email, authCode, startDate, endDate, keyword) {
 
             const allDateIds = allDateResults || [];
             console.log(`文件夹 "${folderName}" 日期范围内共找到 ${allDateIds.length} 封邮件，开始客户端主题过滤...`);
+            
+            // 如果找到邮件，输出前几个邮件ID用于调试
+            if (allDateIds.length > 0 && allDateIds.length <= 10) {
+              console.log(`文件夹 "${folderName}" 找到的邮件ID:`, allDateIds);
+            } else if (allDateIds.length > 10) {
+              console.log(`文件夹 "${folderName}" 找到的邮件ID (前10个):`, allDateIds.slice(0, 10), `... 共 ${allDateIds.length} 封`);
+            }
 
             if (allDateIds.length === 0) {
               foldersProcessed++;
@@ -345,20 +359,38 @@ function fetchEmails(email, authCode, startDate, endDate, keyword) {
                         
                         // 从主题中提取邮箱地址
                         // 主题格式: "[关键词] - Order ID:XXXXX By [发件人email]"
-                        // 提取 "By " 后面的邮箱地址（支持多种格式）
+                        // 或者: "[关键词] - Order ID:XXXXX_by_[发件人email]"
+                        // 或者: "[关键词] - Order ID:XXXXX By[发件人email]" (没有空格)
                         let emailAddress = null;
                         
-                        // 尝试匹配 "By " 或 "By:" 后面的邮箱
-                        const byMatch = subject.match(/By[:\s]+([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i);
+                        // 方法 1: 匹配 "By "、"By:" 或 "By" 后面直接跟邮箱（邮箱必须以字母开头，避免匹配到 Order ID）
+                        // 支持: "By email@domain.com", "By: email@domain.com", "Byemail@domain.com"
+                        const byMatch = subject.match(/By[:\s]*([a-zA-Z][a-zA-Z0-9._-]*@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i);
                         if (byMatch && byMatch[1]) {
                           emailAddress = byMatch[1].toLowerCase().trim();
                         } else {
-                          // 如果 "By" 匹配失败，尝试匹配主题末尾的邮箱地址
-                          // 有些主题可能是 "关键词 - Order ID:XXXXX - [email]"
-                          const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/;
-                          const emailMatch = subject.match(emailRegex);
-                          if (emailMatch && emailMatch[1]) {
-                            emailAddress = emailMatch[1].toLowerCase().trim();
+                          // 方法 2: 匹配 "_by_" 后面的邮箱（处理 Order ID:XXXXX_by_email@domain.com 格式）
+                          const byUnderscoreMatch = subject.match(/_by_([a-zA-Z][a-zA-Z0-9._-]*@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i);
+                          if (byUnderscoreMatch && byUnderscoreMatch[1]) {
+                            emailAddress = byUnderscoreMatch[1].toLowerCase().trim();
+                          } else {
+                            // 方法 3: 匹配主题中所有邮箱，但过滤掉看起来像 Order ID 的
+                            const emailRegex = /\b([a-zA-Z][a-zA-Z0-9._-]*@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)\b/gi;
+                            const allEmails = subject.match(emailRegex);
+                            if (allEmails && allEmails.length > 0) {
+                              // 过滤掉用户名部分看起来像 Order ID 的邮箱（如 6859126-8354657_by_matmorgen@aol.com）
+                              const validEmails = allEmails.filter(email => {
+                                const username = email.split('@')[0].toLowerCase();
+                                // 排除以数字和连字符开头的（可能是 Order ID）
+                                // 排除包含 "_by_" 的（已经被方法2处理）
+                                return !/^\d+[-_]/.test(username) && !username.includes('_by_');
+                              });
+                              
+                              if (validEmails.length > 0) {
+                                // 取最后一个邮箱（通常是最接近主题末尾的）
+                                emailAddress = validEmails[validEmails.length - 1].toLowerCase().trim();
+                              }
+                            }
                           }
                         }
                         
