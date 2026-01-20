@@ -634,5 +634,6 @@ async function crawlEmails(req, res) {
 }
 
 module.exports = {
-  crawlEmails
+  crawlEmails,
+  fetchEmails // 导出 fetchEmails 供定时任务使用
 };

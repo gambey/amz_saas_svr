@@ -129,6 +129,14 @@ async function startServer() {
       console.log('⚠️  Email configuration issue, email features may not work');
     });
 
+    // 启动定时任务（如果启用）
+    if (process.env.AUTO_CRAWL_ENABLED !== 'false') {
+      const { startScheduledCrawler } = require('./services/scheduledCrawler');
+      startScheduledCrawler();
+    } else {
+      console.log('⏸️  定时邮箱抓取任务已禁用 (AUTO_CRAWL_ENABLED=false)');
+    }
+
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
       console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);

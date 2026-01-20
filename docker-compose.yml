@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
@@ -53,6 +51,7 @@ services:
       - ./src:/app/src
       - ./package.json:/app/package.json
       - ./logs:/app/logs
+      - /app/node_modules  # 匿名卷，防止本地 node_modules 覆盖容器内的依赖
 
 volumes:
   mysql_data:

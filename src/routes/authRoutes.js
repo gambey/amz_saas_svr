@@ -60,7 +60,7 @@ const { login, createAdmin, updatePassword, getAdmins, deleteAdmin, getPublicKey
  *                   properties:
  *                     token:
  *                       type: string
- *                       description: JWT 认证令牌，需要在后续请求的 Header 中携带（Authorization: Bearer {token}）
+ *                       description: JWT 认证令牌，需要在后续请求的 Header 中携带，格式为 Authorization Bearer {token}
  *                       example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *                     user:
  *                       type: object
