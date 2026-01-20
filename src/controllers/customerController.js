@@ -3,7 +3,7 @@ const { pool } = require('../config/database');
 // 获取客户列表（支持模糊查询）
 async function getCustomers(req, res) {
   try {
-    const { email, brand, tag, page = 1, pageSize = 20 } = req.query;
+    const { email, brand, tag, remarks, page = 1, pageSize = 20 } = req.query;
     
     let query = 'SELECT * FROM customers WHERE 1=1';
     const params = [];
@@ -20,6 +20,10 @@ async function getCustomers(req, res) {
     if (tag) {
       query += ' AND LOWER(tag) LIKE ?';
       params.push(`%${tag.toLowerCase()}%`);
+    }
+    if (remarks) {
+      query += ' AND LOWER(remarks) LIKE ?';
+      params.push(`%${remarks.toLowerCase()}%`);
     }
 
     // 添加排序
@@ -51,6 +55,10 @@ async function getCustomers(req, res) {
     if (tag) {
       countQuery += ' AND LOWER(tag) LIKE ?';
       countParams.push(`%${tag.toLowerCase()}%`);
+    }
+    if (remarks) {
+      countQuery += ' AND LOWER(remarks) LIKE ?';
+      countParams.push(`%${remarks.toLowerCase()}%`);
     }
 
     const [countResult] = await pool.execute(countQuery, countParams);

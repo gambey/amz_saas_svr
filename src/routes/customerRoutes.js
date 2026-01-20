@@ -37,6 +37,11 @@ router.use(authenticate);
  *           type: string
  *         description: 标签（模糊查询，不区分大小写）
  *       - in: query
+ *         name: remarks
+ *         schema:
+ *           type: string
+ *         description: 备注（模糊查询，不区分大小写）
+ *       - in: query
  *         name: page
  *         schema:
  *           type: integer
