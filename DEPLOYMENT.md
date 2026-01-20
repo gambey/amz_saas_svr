@@ -131,6 +131,7 @@ tar -czf amz-saas-deploy.tar.gz \
   \
   src/ \
   package.json \
+  package-lock.json \
   Dockerfile \
   docker-compose.yml \
   README.md \
